@@ -9,9 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true })); // Parse form data
-app.use(express.static('public')); // Serve static assets
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static assets
 app.set('view engine', 'ejs');
-app.set('views', './views'); // Look for views in server/views
+app.set('views', path.join(__dirname, 'views')); // Look for views in server/views
 
 const PORT = process.env.PORT || 3000;
 
