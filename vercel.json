@@ -19,6 +19,22 @@
             "dest": "/server/index.js"
         },
         {
+            "src": "/",
+            "dest": "/server/index.js"
+        },
+        {
+            "src": "/login",
+            "dest": "/server/index.js"
+        },
+        {
+            "src": "/select-patient",
+            "dest": "/server/index.js"
+        },
+        {
+            "src": "/dashboard",
+            "dest": "/server/index.js"
+        },
+        {
             "src": "/(.*)",
             "dest": "/client/$1"
         }
