@@ -1,0 +1,87 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #eef2f6;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 1300px;
+  margin: auto;
+}
+
+h1 {
+  background: #1f3c88;
+  color: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.section {
+  margin-top: 20px;
+}
+
+h3 {
+  color: #333;
+  border-bottom: 2px solid #1f3c88;
+  padding-bottom: 5px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background: #f2f4f8;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.low { background: #2e7d32; }
+.medium { background: #f9a825; }
+.high { background: #c62828; }
+
+.arrow-up { color: #c62828; font-weight: bold; }
+.arrow-down { color: #2e7d32; font-weight: bold; }
+.arrow-stable { color: #555; }
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.export {
+  background: #1f3c88;
+  color: #fff;
+}
+
+select, input[type="file"] {
+  padding: 8px;
+  margin-right: 10px;
+}

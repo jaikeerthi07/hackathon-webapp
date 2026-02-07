@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>MediGlove – Doctor Dashboard</title>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef2f6;
+            padding: 20px;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 1300px;
+            margin: auto;
+        }
+
+        h1 {
+            background: #1f3c88;
+            color: #fff;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #f2f4f8;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .low {
+            background: #2e7d32;
+        }
+
+        .medium {
+            background: #f9a825;
+        }
+
+        .high {
+            background: #c62828;
+        }
+
+        .arrow-up {
+            color: #c62828;
+        }
+
+        .arrow-down {
+            color: #2e7d32;
+        }
+
+        .arrow-stable {
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+        }
+
+        button {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .export {
+            background: #1f3c88;
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" id="reportArea">
+
+        <h1>MEDIGLOVE – Physician Dashboard</h1>
+
+        <!-- ================= MULTI PATIENT ================= -->
+        <div class="section">
+            <h3>Patient Selection</h3>
+            <select id="patientSelector">
+                <option value="1">Patient 1 (John Doe)</option>
+            </select>
+        </div>
+
+        <!-- ================= FILE UPLOAD ================= -->
+        <div class="section">
+            <input type="file" id="excelFile" accept=".xlsx">
+            <button onclick="uploadData()">Upload Data</button>
+            <p id="uploadStatus"></p>
+        </div>
+
+        <canvas id="vitalsChart"></canvas>
+
+        <!-- ================= VITAL TABLE ================= -->
+        <table>
+            <tr>
+                <th>Vital</th>
+                <th>Value</th>
+                <th>Trend</th>
+                <th>Status</th>
+            </tr>
+            <tr>
+                <td>Heart Rate</td>
+                <td id="hrVal"></td>
+                <td id="hrTrend"></td>
+                <td id="hrFlag"></td>
+            </tr>
+            <tr>
+                <td>SpO₂</td>
+                <td id="spo2Val"></td>
+                <td id="spo2Trend"></td>
+                <td id="spo2Flag"></td>
+            </tr>
+            <tr>
+                <td>Temperature</td>
+                <td id="tempVal"></td>
+                <td id="tempTrend"></td>
+                <td id="tempFlag"></td>
+            </tr>
+        </table>
+
+        <!-- ================= NEWS SCORE ================= -->
+        <div class="section">
+            <h3>NEWS Score Breakdown</h3>
+            <table>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Score</th>
+                </tr>
+                <tr>
+                    <td>Heart Rate</td>
+                    <td id="newsHR"></td>
+                </tr>
+                <tr>
+                    <td>SpO₂</td>
+                    <td id="newsSpO2"></td>
+                </tr>
+                <tr>
+                    <td>Temperature</td>
+                    <td id="newsTemp"></td>
+                </tr>
+                <tr>
+                    <th>Total</th>
+                    <th id="newsTotal"></th>
+                </tr>
+            </table>
+
+            <p>
+                Clinical Risk:
+                <span id="riskBadge" class="badge low">LOW</span>
+                <span id="icuBadge" class="badge high" style="display:none;">ICU ESCALATION</span>
+            </p>
+        </div>
+
+        <!-- ================= INTERPRETATION ================= -->
+        <div class="section">
+            <h3>Clinical Interpretation</h3>
+            <p id="interpretation"></p>
+        </div>
+
+        <!-- ================= DOCTOR NOTES ================= -->
+        <div class="section">
+            <h3>Doctor Override Notes</h3>
+            <textarea rows="4" placeholder="Doctor observations, override decision, medication notes..."></textarea>
+        </div>
+
+        <!-- ================= ACTIONS ================= -->
+        <div class="section">
+            <button class="export" onclick="exportPDF()">Export Medical PDF</button>
+        </div>
+
+    </div>
+
+    <script>
+        let vitalsData = [], chart = null;
+
+        // ---------- API Integration ----------
+        const API_URL = 'http://localhost:3000/api';
+        const patientId = 1; // Default for demo
+
+        async function fetchDashboard() {
+            try {
+                const res = await fetch(`${API_URL}/patient/${patientId}/dashboard`);
+                const data = await res.json();
+
+                if (data.error) {
+                    console.error(data.error);
+                    return;
+                }
+
+                vitalsData = data.history.reverse(); // API sends newest first, we reverse for chart if needed, or handle in chart
+                // Actually server sends DESC (newest first). 
+                // Chart needs ASC (oldest first).
+                // Let's check server response again. 
+                // Server: "history: history" where history is [...rows].reverse() -> so it IS ASC (Oldest First).
+                // So vitalsData = data.history is correct for Chart.
+                vitalsData = data.history;
+
+                const latest = data.latest;
+                const analysis = data.analysis;
+
+                updateDOM(latest, analysis);
+                renderChart();
+            } catch (err) {
+                console.error("Error fetching dashboard:", err);
+            }
+        }
+
+        function updateDOM(l, analysis) {
+            if (!l || !l.id) return;
+
+            // Vitals
+            hrVal.innerText = l.heart_rate + " BPM";
+            spo2Val.innerText = l.spo2 + " %";
+            tempVal.innerText = l.temperature + " °C";
+
+            // Trends
+            const t = analysis.trends;
+            hrTrend.innerHTML = renderTrendArrow(t.hr);
+            spo2Trend.innerHTML = renderTrendArrow(t.spo2);
+            tempTrend.innerHTML = renderTrendArrow(t.temp);
+
+            // Flags
+            hrFlag.innerHTML = getFlag(l.heart_rate, 'HR');
+            spo2Flag.innerHTML = getFlag(l.spo2, 'SPO2');
+            tempFlag.innerHTML = getFlag(l.temperature, 'TEMP');
+
+            // NEWS Breakdown
+            // We can calculate local or use from server. Server sends total score.
+            // Let's implement local logic for breakdown display or just show total?
+            // User wants breakdown. Let's start with Total + Badge from Server
+            newsTotal.innerText = analysis.newsScore;
+
+            // Badges
+            if (analysis.newsScore >= 7) {
+                riskBadge.innerText = "HIGH";
+                riskBadge.className = "badge high";
+                icuBadge.style.display = "inline-block";
+            } else if (analysis.newsScore >= 5) {
+                riskBadge.innerText = "MEDIUM";
+                riskBadge.className = "badge medium";
+                icuBadge.style.display = "none";
+            } else {
+                riskBadge.innerText = "LOW";
+                riskBadge.className = "badge low";
+                icuBadge.style.display = "none";
+            }
+
+            // Interpretation
+            interpretation.innerText = analysis.interpretation;
+        }
+
+        function renderTrendArrow(dir) {
+            if (dir === 'UP') return '<span class="arrow-up">↑</span>';
+            if (dir === 'DOWN') return '<span class="arrow-down">↓</span>';
+            return '<span class="arrow-stable">→</span>';
+        }
+
+        function getFlag(val, type) {
+            if (type === 'HR') return (val > 100 || val < 50) ? '<span class="badge high">Abnormal</span>' : '<span class="badge low">OK</span>';
+            if (type === 'SPO2') return (val < 94) ? '<span class="badge high">LOW</span>' : '<span class="badge low">OK</span>';
+            if (type === 'TEMP') return (val > 38) ? '<span class="badge high">HIGH</span>' : '<span class="badge low">OK</span>';
+            return "";
+        }
+
+        // ---------- Upload ----------
+        async function uploadData() {
+            const fileInput = document.getElementById("excelFile");
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file!");
+                return;
+            }
+
+            const r = new FileReader();
+            r.onload = async (evt) => {
+                const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
+                const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+                document.getElementById("uploadStatus").innerText = `Uploading ${data.length} records...`;
+
+                try {
+                    const res = await fetch(`${API_URL}/vitals/upload`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ patientId: 1, data: data })
+                    });
+                    const result = await res.json();
+                    document.getElementById("uploadStatus").innerText = result.message || "Upload Success";
+                    fetchDashboard();
+                } catch (err) {
+                    document.getElementById("uploadStatus").innerText = "Upload Failed";
+                    console.error(err);
+                }
+            };
+            r.readAsArrayBuffer(file);
+        }
+
+        // Init
+        fetchDashboard();
+        setInterval(fetchDashboard, 5000); // Poll every 5s
+
+        // ---------- Chart ----------
+        function renderChart() {
+            if (chart) chart.destroy();
+            chart = new Chart(vitalsChart, {
+                type: "line",
+                data: {
+                    labels: vitalsData.map(v => {
+                        // timestamp format handling
+                        const d = new Date(v.timestamp);
+                        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }),
+                    datasets: [
+                        { label: "HR", data: vitalsData.map(v => v.heart_rate), borderColor: "red" },
+                        { label: "SpO₂", data: vitalsData.map(v => v.spo2), borderColor: "blue" },
+                        { label: "Temp", data: vitalsData.map(v => v.temperature), borderColor: "orange" }
+                    ]
+                },
+                options: { scales: { x: { display: false } } }
+            });
+        }
+
+
+
+        // ---------- PDF ----------
+        function exportPDF() {
+            html2pdf().from(document.getElementById("reportArea")).save("MediGlove_Medical_Report.pdf");
+        }
+    </script>
+
+</body>
+
+</html>
