@@ -2,12 +2,8 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 
-// Determine database path
-// On Vercel, usage of /tmp is required for writable files
-const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
-const dbPath = isVercel
-    ? path.join('/tmp', 'mediglove.db')
-    : path.resolve(__dirname, 'mediglove.db');
+// Use in-memory database for Vercel compatibility (Demo Mode)
+const dbPath = ':memory:';
 
 console.log(`Using database at: ${dbPath}`);
 
@@ -15,7 +11,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database ' + dbPath + ': ' + err.message);
     } else {
-        console.log('Connected to the SQLite database.');
+        console.log('Connected to the SQLite database (In-Memory).');
         initDb();
     }
 });
